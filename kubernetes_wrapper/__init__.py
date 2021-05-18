@@ -76,6 +76,10 @@ class Kubernetes:
                 logging.error(message)
                 raise RuntimeError(message)
 
+    def read_object(self, obj, client=None, **kwargs):
+        k8s_api = self.find_k8s_api(obj, client)
+        return self.call_api(k8s_api, "read", obj, **kwargs)
+
     def find_k8s_api(self, obj, client):
         grp, ver2, ver = obj["apiVersion"].partition("/")
         if ver == "":
@@ -107,7 +111,10 @@ class Kubernetes:
 
             obj = V1DeleteOptions()
 
-        return call(body=obj, **args)
+        if action == "read":
+            return call(**args)
+        else:
+            return call(body=obj, **args)
 
     def describe(self, obj):
         return f"{obj['kind']} '{obj['metadata']['name']}'"
