@@ -14,7 +14,7 @@ class Kubernetes:
 
     def apply(self, rawData, **kwargs):
         for obj in yaml.safe_load_all(rawData):
-            self.apply_object(obj, None, **kwargs)
+            self.apply_object(obj, **kwargs)
 
     def delete(self, rawData, **kwargs):
         for obj in yaml.safe_load_all(rawData):
@@ -25,7 +25,7 @@ class Kubernetes:
 
         try:
             res = self.call_api(k8s_api, "create", obj, **kwargs)
-            logging.info(f"K8s: {self.describe(obj)} CREATED -> uid={res.metadata.uid}")
+            logging.info(f"K8s: {self.describe(obj)} CREATED")
 
         except kubernetes.client.rest.ApiException as apiEx:
             if apiEx.reason != "Conflict":
@@ -48,9 +48,7 @@ class Kubernetes:
                     res = self.call_api(k8s_api, "delete", obj, **kwargs)
                     logging.info(f"K8s: {self.describe(obj)}  DELETED...")
                     res = self.call_api(k8s_api, "create", obj, **kwargs)
-                    logging.info(
-                        f"K8s: {self.describe(obj)} CREATED -> uid={res.metadata.uid}"
-                    )
+                    logging.info(f"K8s: {self.describe(obj)} CREATED")
                 except Exception as ex:
                     message = (
                         f"K8s: FAILURE updating {self.describe(obj)} Exception: {ex}"
@@ -80,7 +78,7 @@ class Kubernetes:
         k8s_api = self.find_k8s_api(obj, client)
         return self.call_api(k8s_api, "read", obj, **kwargs)
 
-    def find_k8s_api(self, obj, client):
+    def find_k8s_api(self, obj, client=None):
         grp, ver2, ver = obj["apiVersion"].partition("/")
         if ver == "":
             ver = grp
@@ -92,6 +90,7 @@ class Kubernetes:
         ver = ver.capitalize()
 
         k8s_api = f"{grp}{ver}Api"
+        print(k8s_api)
         return RetryWrapper(getattr(kubernetes.client, k8s_api)(client), Exception)
 
     def call_api(self, k8s_api, action, obj, **args):

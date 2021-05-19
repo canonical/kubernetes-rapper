@@ -1,2 +1,3 @@
-__pycache__
+*/__pycache__
+test/unit/__pycache__
 .tox
