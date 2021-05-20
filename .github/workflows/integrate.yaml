@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  lint:
+    name: Lint Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: Gr1N/setup-poetry@v4
+
+    - name: Install dependencies
+      run: sudo apt-get install python3-pip python3-cachecontrol tox
+
+    - name: Lint code
+      run: tox -e lint
+
+  unit:
+    name: Unit Test
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: Gr1N/setup-poetry@v4
+
+    - name: Install dependencies
+      run: sudo apt-get install python3-pip python3-cachecontrol tox
+
+    - name: Run unit tests
+      run: tox -e unit

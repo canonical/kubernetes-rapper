@@ -6,7 +6,7 @@ import time
 class RetryWrapper:
     """Generic class for retrying method calls on an object"""
 
-    def __init__(self, object, exception=Exception, timeout=60):
+    def __init__(self, object, exception=Exception, timeout=10):
         self.object = object
         self.exception = exception
         self.timeout = timeout
