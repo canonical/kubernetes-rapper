@@ -2,7 +2,7 @@ import yaml
 from unittest.mock import patch
 from unittest import TestCase
 import kubernetes
-from kubernetes_wrapper import Kubernetes
+from kubernetes_wrapper.k8s_client_wrapper import KubernetesClientWrapper
 
 TEST_RESOURCE = """
 apiVersion: apps/v1
@@ -34,16 +34,33 @@ LOADED_TEST_RESOURCE = yaml.safe_load(TEST_RESOURCE)
 class KubernetesTestCase(TestCase):
     @patch("kubernetes.config.load_incluster_config")
     def setUp(self, config_mock):
-        self.kubernetes = Kubernetes("test-namespace")
+        self.kubernetes = KubernetesClientWrapper("test-namespace")
 
     def test_describe(self):
         result = self.kubernetes.describe(LOADED_TEST_RESOURCE)
         assert result == "Deployment 'nginx-deployment'"
 
     def test_find_k8s_api(self):
-        # TODO figure out how to test this method with RetryWrapper
-        self.kubernetes.find_k8s_api(LOADED_TEST_RESOURCE)
-        assert True
+        result = self.kubernetes.find_k8s_api(LOADED_TEST_RESOURCE)
+        assert isinstance(result, kubernetes.client.api.apps_v1_api.AppsV1Api)
+
+    @patch("kubernetes.client.api.AppsV1Api.create_namespaced_deployment")
+    def test_call_api(self, mock_create):
+        api = self.kubernetes.find_k8s_api(LOADED_TEST_RESOURCE)
+        self.kubernetes.call_api(api, "create", LOADED_TEST_RESOURCE)
+        mock_create.assert_called_with(
+            body=LOADED_TEST_RESOURCE, namespace="test-namespace"
+        )
+
+    @patch("kubernetes.client.api.AppsV1Api.create_namespaced_deployment")
+    def test_call_api_namespace(self, mock_create):
+        api = self.kubernetes.find_k8s_api(LOADED_TEST_RESOURCE)
+        self.kubernetes.call_api(
+            api, "create", LOADED_TEST_RESOURCE, namespace="other-namespace"
+        )
+        mock_create.assert_called_with(
+            body=LOADED_TEST_RESOURCE, namespace="other-namespace"
+        )
 
     @patch("kubernetes.client.api.AppsV1Api.create_namespaced_deployment")
     def test_apply_object(self, mock_create):
@@ -81,6 +98,20 @@ class KubernetesTestCase(TestCase):
         mock_create.assert_called()
         mock_patch.assert_called_once()
         mock_delete.assert_called_once()
+
+    @patch("kubernetes.client.api.AppsV1Api.delete_namespaced_deployment")
+    @patch("kubernetes.client.api.AppsV1Api.patch_namespaced_deployment")
+    @patch("kubernetes.client.api.AppsV1Api.create_namespaced_deployment")
+    def test_apply_object_no_delete_create(self, mock_create, mock_patch, mock_delete):
+        mock_create.side_effect = kubernetes.client.rest.ApiException(reason="Conflict")
+        mock_patch.side_effect = kubernetes.client.rest.ApiException(
+            reason="Unprocessable Entity"
+        )
+        with self.assertRaises(kubernetes.client.rest.ApiException):
+            self.kubernetes.apply_object(LOADED_TEST_RESOURCE, delete_create=False)
+        mock_create.assert_called_once()
+        mock_patch.assert_called_once()
+        mock_delete.assert_not_called()
 
     @patch("kubernetes.client.api.AppsV1Api.create_namespaced_deployment")
     def test_apply_object_exception(self, mock_create):
