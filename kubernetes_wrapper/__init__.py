@@ -3,7 +3,7 @@ from .k8s_client_wrapper import KubernetesClientWrapper
 
 
 class Kubernetes(RetryWrapper):
-    def __init__(self, namespace):
-        super().__init__(KubernetesClientWrapper(namespace), Exception)
+    def __init__(self, namespace, kubeconfig=None):
+        super().__init__(KubernetesClientWrapper(namespace, kubeconfig), Exception)
         # TODO we could be a bit more specific with the exceptions where we
         # retry
