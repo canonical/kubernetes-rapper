@@ -6,9 +6,9 @@ from inflection import underscore
 
 
 class KubernetesClientWrapper:
-    def __init__(self, namespace, kubeconfig=None):
+    def __init__(self, namespace, kubeconfig=None, **kwargs):
         if kubeconfig:
-            kubernetes.config.load_kube_config(kubeconfig)
+            kubernetes.config.load_kube_config(kubeconfig, **kwargs)
         else:
             kubernetes.config.load_incluster_config()
         self.api_client = kubernetes.client.ApiClient

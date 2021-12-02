@@ -31,6 +31,18 @@ spec:
 LOADED_TEST_RESOURCE = yaml.safe_load(TEST_RESOURCE)
 
 
+class KubernetesKubeConfigTestCase(TestCase):
+    @patch("kubernetes.config.load_kube_config")
+    def setUp(self, config_mock):
+        self.config_mock = config_mock
+        self.kubernetes = KubernetesClientWrapper(
+            "test-namespace", kubeconfig="kubeconfig", context="juju-context"
+        )
+
+    def test_config_construction(self):
+        self.config_mock.assert_called_once_with("kubeconfig", context="juju-context")
+
+
 class KubernetesTestCase(TestCase):
     @patch("kubernetes.config.load_incluster_config")
     def setUp(self, config_mock):
